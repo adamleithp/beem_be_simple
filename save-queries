@@ -1,0 +1,121 @@
+mutation {
+  createRequest(input:{
+    fromLocation: {
+      x:"12312",
+      y:"12312",
+    }
+    toLocation: {
+      x: "12312",
+      y: "12312",
+    }
+    offeredPrice:{
+      amount: 3000.00,
+   		currencyCode: "USD"
+    }
+  }) {
+    id
+    offeredPrice {
+      amount
+      currencyCode
+    }
+    fromLocation {
+      x
+      y
+    }
+    toLocation {
+      x
+      y
+    }
+  }
+}
+
+
+mutation {
+  createTrip(input:{
+    fromDate:"12312312",
+    toDate:"12312312",
+    fromLocation: {
+      x:"12312",
+      y:"12312",
+    }
+    toLocation: {
+      x: "12312",
+      y: "12312",
+    }
+
+  }) {
+    id
+    fromDate
+    toDate
+    fromLocation {
+      x
+      y
+    }
+    toLocation {
+      x
+      y
+    }
+  }
+}
+
+
+{
+#   myTrip(id:"1") {
+#     id
+#     toDate
+#     fromDate
+#     toLocation {
+#       x
+#       y
+#     }
+#     fromLocation {
+#       x
+#       y
+#     }
+#     attachedRequests {
+#       id
+#       toLocation {
+#         x
+#         y
+#       }
+#       fromLocation {
+#         x
+#         y
+#       }
+#       status
+#       package {
+#         id
+#         name
+#         price
+#       }
+#     }
+#   }
+
+
+
+  myRequest(id:"1"){
+  	id
+    status
+    counterOffers {
+      amount
+      currencyCode
+    }
+    toLocation {
+      x
+      y
+    }
+    fromLocation {
+      x
+      y
+    }
+    package {
+      id
+      name
+      description
+      price {
+        amount
+      	currencyCode
+      }
+    }
+  }
+}

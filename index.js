@@ -1,5 +1,8 @@
 const { GraphQLServer } = require('graphql-yoga')
+const uuidv4 = require('uuid/v4')
 
+const _Trips = [];
+const _Requests = [];
 
 const Prices = [
  {
@@ -104,11 +107,19 @@ const typeDefs = `
     PAYMENT_FAILED
   }
 
+  input LocationInputObject {
+    x: String!
+    y: String!
+  }
   type Location {
     x: String!
     y: String!
   }
 
+  input PriceInputObject {
+    amount: Float!
+    currencyCode: String!
+  }
   type Price {
     amount: Float!
     currencyCode: String!
@@ -120,13 +131,27 @@ const typeDefs = `
     description: String!
     price: Price
   }
+
+  input RequestInputObject {
+    fromLocation: LocationInputObject!
+    toLocation: LocationInputObject!
+    offeredPrice: PriceInputObject!
+  }
   type Request {
     id: ID!
     package: Package
     fromLocation: Location!
     toLocation: Location!
+    offeredPrice: Price!
     status: Status!
     counterOffers: [Price]
+  }
+
+  input TripInputObject {
+    fromLocation: LocationInputObject!
+    toLocation: LocationInputObject!
+    fromDate: DateTime!
+    toDate: DateTime!
   }
   type Trip {
     id: ID!
@@ -137,6 +162,10 @@ const typeDefs = `
     attachedRequests: [Request]
   }
 
+  type Mutation {
+    createTrip(input: TripInputObject): Trip!
+    createRequest(input: RequestInputObject): Request!
+  }
   type Query {
     myTrip(id: String): Trip!
     myRequest(id: String): Request!
@@ -152,6 +181,58 @@ const resolvers = {
       return Requests.filter((request) => request.id === id)[0]
     },
   },
+  Mutation: {
+    createTrip: (_, {input}) => {
+      const {fromLocation, toLocation, fromDate, toDate} = input;
+
+      const trip = {
+        id: uuidv4(),
+        fromLocation: {
+          x: fromLocation.x,
+          y: fromLocation.y,
+        },
+        toLocation: {
+          x: toLocation.x,
+          y: toLocation.y,
+        },
+        fromDate: fromDate,
+        toDate: toDate,
+      }
+
+      // Save trips
+      _Trips.push(trip)
+
+      return trip
+    },
+
+    createRequest: (_, {input}) => {
+      const {fromLocation, toLocation, offeredPrice} = input;
+
+      const request = {
+        id: uuidv4(),
+        fromLocation: {
+          x: fromLocation.x,
+          y: fromLocation.y,
+        },
+        toLocation: {
+          x: toLocation.x,
+          y: toLocation.y,
+        },
+        offeredPrice: {
+          amount: offeredPrice.amount,
+          currencyCode: offeredPrice.currencyCode
+        },
+      }
+
+      // Save request
+      _Requests.push(request)
+
+      console.log('_Requests', _Requests);
+
+
+      return request
+    }
+  }
 }
 
 const server = new GraphQLServer({ typeDefs, resolvers })
