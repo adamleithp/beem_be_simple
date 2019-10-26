@@ -227,9 +227,6 @@ const resolvers = {
       // Save request
       _Requests.push(request)
 
-      console.log('_Requests', _Requests);
-
-
       return request
     }
   }
