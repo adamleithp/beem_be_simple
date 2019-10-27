@@ -27,10 +27,7 @@ mutation {
       y
     }
   }
-}
 
-
-mutation {
   createTrip(input:{
     fromDate:"12312312",
     toDate:"12312312",
@@ -54,6 +51,22 @@ mutation {
     toLocation {
       x
       y
+    }
+  }
+
+  createPackage(input:{
+    name: "test",
+    description:"something about it",
+    price:{
+      amount:2400,
+      currencyCode:"USD"
+    }
+  }) {
+    id
+    description
+    price {
+      amount
+      currencyCode
     }
   }
 }
@@ -118,4 +131,5 @@ mutation {
       }
     }
   }
+
 }

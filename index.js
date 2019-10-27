@@ -1,5 +1,6 @@
 const { GraphQLServer } = require('graphql-yoga')
 const uuidv4 = require('uuid/v4')
+const fetch = require('node-fetch')
 
 const _Trips = [];
 const _Requests = [];
@@ -29,27 +30,27 @@ const Requests = [
     id: '1',
     package: Packages[0],
     fromLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
     status: 'COUNTERED',
     counterOffers: [Prices[0]],
     toLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
   },
   {
     id: '2',
     package: null,
     fromLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
     status: 'PENDING',
     toLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
   }
 ]
@@ -58,12 +59,12 @@ const Trips = [
   {
     id: '1',
     fromLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
     toLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
     fromDate: 12312312312123,
     toDate: 123123123123,
@@ -72,12 +73,12 @@ const Trips = [
   {
     id: '2',
     fromLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
     toLocation: {
-      x: '123123',
-      y: '123123',
+      lat: -12.000000,
+      lng: 12.000000,
     },
     fromDate: 12312312312123,
     toDate: 123123123123
@@ -108,12 +109,14 @@ const typeDefs = `
   }
 
   input LocationInputObject {
-    x: String!
-    y: String!
+    lat: Float!
+    lng: Float!
+    googlePlaceId: String
   }
   type Location {
-    x: String!
-    y: String!
+    lat: Float!
+    lng: Float!
+    googlePlaceId: String
   }
 
   input PriceInputObject {
@@ -125,6 +128,11 @@ const typeDefs = `
     currencyCode: String!
   }
 
+  input PackageInputObject {
+    name: String!
+    description: String!
+    price: PriceInputObject!
+  }
   type Package {
     id: ID!
     name: String!
@@ -162,23 +170,28 @@ const typeDefs = `
     attachedRequests: [Request]
   }
 
-  type Mutation {
-    createTrip(input: TripInputObject): Trip!
-    createRequest(input: RequestInputObject): Request!
-  }
   type Query {
     myTrip(id: String): Trip!
     myRequest(id: String): Request!
+    myPackage(id: String): Package!
+  }
+  type Mutation {
+    createTrip(input: TripInputObject): Trip!
+    createRequest(input: RequestInputObject): Request!
+    createPackage(input: PackageInputObject): Package!
   }
 `
 
 const resolvers = {
   Query: {
     myTrip: (_, { id }) => {
-      return Trips.filter((trip) => trip.id === id)[0]
+      return _Trips.filter((trip) => trip.id === id)[0]
     },
     myRequest: (_, { id }) => {
-      return Requests.filter((request) => request.id === id)[0]
+      return _Requests.filter((request) => request.id === id)[0]
+    },
+    myPackage: (_, { id }) => {
+      return Packages.filter((package) => package.id === id)[0]
     },
   },
   Mutation: {
@@ -188,12 +201,14 @@ const resolvers = {
       const trip = {
         id: uuidv4(),
         fromLocation: {
-          x: fromLocation.x,
-          y: fromLocation.y,
+          lat: fromLocation.lat,
+          lng: fromLocation.lng,
+          googlePlaceId: fromLocation.googlePlaceId
         },
         toLocation: {
-          x: toLocation.x,
-          y: toLocation.y,
+          lat: toLocation.lat,
+          lng: toLocation.lng,
+          googlePlaceId: toLocation.googlePlaceId
         },
         fromDate: fromDate,
         toDate: toDate,
@@ -208,15 +223,23 @@ const resolvers = {
     createRequest: (_, {input}) => {
       const {fromLocation, toLocation, offeredPrice} = input;
 
+      // console.log(fromLocation, toLocation, offeredPrice);
+
+
       const request = {
         id: uuidv4(),
+        // this is an establishment
+        status: 'PENDING',
         fromLocation: {
-          x: fromLocation.x,
-          y: fromLocation.y,
+          lat: fromLocation.lat,
+          lng: fromLocation.lng,
+          googlePlaceId: fromLocation.googlePlaceId
         },
+        // this is a location
         toLocation: {
-          x: toLocation.x,
-          y: toLocation.y,
+          lat: toLocation.lat,
+          lng: toLocation.lng,
+          googlePlaceId: toLocation.googlePlaceId
         },
         offeredPrice: {
           amount: offeredPrice.amount,
@@ -227,11 +250,41 @@ const resolvers = {
       // Save request
       _Requests.push(request)
 
+      console.log('request', request);
+      console.log('_Requests', _Requests);
+
+
       return request
+    },
+
+    createPackage: (_, {input}) => {
+      const {name, description, price} = input;
+
+      const package = {
+        id: uuidv4(),
+        name: name,
+        description: description,
+        price: {
+          amount: price.amount,
+          currencyCode: price.currencyCode
+        }
+      }
+
+      return package
     }
   }
 }
 
+const opts = {
+  port: 4000,
+  cors: {
+    credentials: true,
+    origin: "*" // your frontend url.
+  }
+};
+
 const server = new GraphQLServer({ typeDefs, resolvers })
 
-server.start(() => console.log('Server is running on localhost:4000'))
+server.start(opts, () =>
+  console.log(`Server is running on http://localhost:${opts.port}`)
+)
