@@ -174,6 +174,7 @@ const typeDefs = `
 
   type Query {
     myTrip(id: String): Trip!
+    myTrips: [Trip]
     myRequest(id: String): Request!
     myRequests: [Request]
     myPackage(id: String): Package!
@@ -189,6 +190,9 @@ const resolvers = {
   Query: {
     myTrip: (_, { id }) => {
       return _Trips.filter((trip) => trip.id === id)[0]
+    },
+    myTrips: (_) => {
+      return _Trips
     },
     myRequest: (_, { id }) => {
       return _Requests.filter((request) => request.id === id)[0]
