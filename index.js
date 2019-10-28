@@ -2,6 +2,7 @@ const { GraphQLServer } = require('graphql-yoga')
 const uuidv4 = require('uuid/v4')
 const fetch = require('node-fetch')
 
+const _Packages = [];
 const _Trips = [];
 const _Requests = [];
 
@@ -144,6 +145,7 @@ const typeDefs = `
     fromLocation: LocationInputObject!
     toLocation: LocationInputObject!
     offeredPrice: PriceInputObject!
+    package: PackageInputObject
   }
   type Request {
     id: ID!
@@ -173,6 +175,7 @@ const typeDefs = `
   type Query {
     myTrip(id: String): Trip!
     myRequest(id: String): Request!
+    myRequests: [Request]
     myPackage(id: String): Package!
   }
   type Mutation {
@@ -189,6 +192,9 @@ const resolvers = {
     },
     myRequest: (_, { id }) => {
       return _Requests.filter((request) => request.id === id)[0]
+    },
+    myRequests: (_) => {
+      return _Requests
     },
     myPackage: (_, { id }) => {
       return Packages.filter((package) => package.id === id)[0]
@@ -221,10 +227,7 @@ const resolvers = {
     },
 
     createRequest: (_, {input}) => {
-      const {fromLocation, toLocation, offeredPrice} = input;
-
-      // console.log(fromLocation, toLocation, offeredPrice);
-
+      const {fromLocation, toLocation, offeredPrice, package = null} = input;
 
       const request = {
         id: uuidv4(),
@@ -247,12 +250,22 @@ const resolvers = {
         },
       }
 
+      if (package) {
+        request.package = {
+          id: uuidv4(),
+          name: package.name,
+          description: package.description,
+          price: {
+            amount: package.price.amount,
+            currencyCode: package.price.currencyCode
+          }
+        };
+
+        _Packages.push(request.package)
+      }
+
       // Save request
       _Requests.push(request)
-
-      console.log('request', request);
-      console.log('_Requests', _Requests);
-
 
       return request
     },
