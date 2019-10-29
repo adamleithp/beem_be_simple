@@ -178,6 +178,7 @@ const typeDefs = `
     myRequest(id: String): Request!
     myRequests: [Request]
     myPackage(id: String): Package!
+    getRequestsForLocation(placeId: String): [Request]
   }
   type Mutation {
     createTrip(input: TripInputObject): Trip!
@@ -202,6 +203,9 @@ const resolvers = {
     },
     myPackage: (_, { id }) => {
       return Packages.filter((package) => package.id === id)[0]
+    },
+    getRequestsForLocation: (_, { placeId }) => {
+      return _Requests.filter((request) => request.toLocation.googlePlaceId === placeId)
     },
   },
   Mutation: {
