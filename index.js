@@ -28,61 +28,50 @@ const Packages = [
 
 const Requests = [
   {
-    id: '1',
-    package: Packages[0],
-    fromLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
-    },
-    status: 'COUNTERED',
-    counterOffers: [Prices[0]],
-    toLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
-    },
-  },
-  {
-    id: '2',
-    package: null,
-    fromLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
-    },
+    id: '3edda445-20d5-4861-8f63-2d8312e771e7',
     status: 'PENDING',
-    toLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
+    fromLocation: {
+      lat: 45.52269019999999,
+      lng: -73.6019644,
+      googlePlaceId: 'ChIJQ2XG23gZyUwRoCNTC2xte4M'
     },
+    toLocation: {
+      lat: 13.1059816,
+      lng: -59.61317409999999,
+      googlePlaceId: 'ChIJPflM-sL2Q4wRaXCGlWrmwX0'
+    },
+    offeredPrice: {
+      amount: 20, currencyCode: 'USD'
+    },
+    package: {
+      id: 'd27e8fa1-4c9d-4dd6-92d8-b251e9602318',
+      name: '12 Montreal Bagel',
+      description: 'A dozen bagels from St.Viateur in plateau Montreal',
+      price: {
+        amount: 20,
+        currencyCode: 'USD'
+      }
+    },
+    tripId: "68e9b47f-89e4-47c8-9599-7f4b4c5a6017",
   }
 ]
 
 const Trips = [
   {
-    id: '1',
+    id: '68e9b47f-89e4-47c8-9599-7f4b4c5a6017',
     fromLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
+      lat: 45.5016889,
+      lng: -73.567256,
+      googlePlaceId: 'ChIJDbdkHFQayUwR7-8fITgxTmU'
     },
-    toLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
+    toLocation:{
+      lat: 13.1059816,
+      lng: -59.61317409999999,
+      googlePlaceId: 'ChIJPflM-sL2Q4wRaXCGlWrmwX0'
     },
-    fromDate: 12312312312123,
-    toDate: 123123123123,
+    fromDate: 1575090000,
+    toDate: 1575090000,
     attachedRequests: [Requests[0]]
-  },
-  {
-    id: '2',
-    fromLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
-    },
-    toLocation: {
-      lat: -12.000000,
-      lng: 12.000000,
-    },
-    fromDate: 12312312312123,
-    toDate: 123123123123
   }
 ]
 
@@ -147,6 +136,7 @@ const typeDefs = `
     offeredPrice: PriceInputObject!
     package: PackageInputObject
   }
+
   type Request {
     id: ID!
     package: Package
@@ -155,6 +145,7 @@ const typeDefs = `
     offeredPrice: Price!
     status: Status!
     counterOffers: [Price]
+    trip: Trip
   }
 
   input TripInputObject {
@@ -163,6 +154,7 @@ const typeDefs = `
     fromDate: DateTime!
     toDate: DateTime!
   }
+
   type Trip {
     id: ID!
     fromLocation: Location
@@ -170,6 +162,11 @@ const typeDefs = `
     fromDate: DateTime!
     toDate: DateTime!
     attachedRequests: [Request]
+  }
+
+  input AttachRequestToTripInput {
+    tripId: ID!
+    requestId: ID!
   }
 
   type Query {
@@ -184,6 +181,7 @@ const typeDefs = `
     createTrip(input: TripInputObject): Trip!
     createRequest(input: RequestInputObject): Request!
     createPackage(input: PackageInputObject): Package!
+    attachRequestToTrip(input: AttachRequestToTripInput): Trip!
   }
 `
 
@@ -209,6 +207,54 @@ const resolvers = {
     },
   },
   Mutation: {
+    attachRequestToTrip: (_, {input}) => {
+      const {tripId, requestId} = input;
+
+      // get trip
+      const trip = _Trips.filter((trip) => trip.id === tripId)[0]
+
+      // Validation
+      if (!trip) return console.log('Trip doesnt exist');
+
+      // get trip index
+      let tripIndex = _Trips.findIndex(trip => trip.id == tripId);
+
+      // remove trip from array
+      _Trips.splice(tripIndex, 1);
+
+      // get request
+      const request = _Requests.filter((request) => request.id === requestId)[0]
+
+      // Validation
+      if (!request) return console.log('Request doesnt exist');
+
+      // get request index
+      let requestIndex = _Requests.findIndex(request => request.id == requestId);
+
+      // remove request from array
+      _Requests.splice(requestIndex, 1);
+
+      // Add trip to request
+      request.trip = trip;
+
+      // change request status
+      request.status = 'ACCEPTED';
+
+      // add to request trip.attachedRequests
+      // trip.attachedRequests = [request]
+      trip.attachedRequests.push(request)
+
+      // push trip back to _Trips
+      _Trips.push(trip);
+
+      // push request back to _Requests
+      _Requests.push(request);
+
+      // return trip
+      return trip
+    },
+
+
     createTrip: (_, {input}) => {
       const {fromLocation, toLocation, fromDate, toDate} = input;
 
@@ -226,6 +272,7 @@ const resolvers = {
         },
         fromDate: fromDate,
         toDate: toDate,
+        attachedRequests: []
       }
 
       // Save trips
@@ -256,6 +303,7 @@ const resolvers = {
           amount: offeredPrice.amount,
           currencyCode: offeredPrice.currencyCode
         },
+        trip: null,
       }
 
       if (package) {
@@ -268,7 +316,6 @@ const resolvers = {
             currencyCode: package.price.currencyCode
           }
         };
-
         _Packages.push(request.package)
       }
 
