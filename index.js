@@ -5,6 +5,7 @@ const fetch = require('node-fetch')
 const _Packages = [];
 const _Trips = [];
 const _Requests = [];
+const _CounteredRequests = [];
 
 const Prices = [
  {
@@ -130,11 +131,27 @@ const typeDefs = `
     price: Price
   }
 
+
+  input CounteredRequestInputObject {
+    request: RequestInputObject!
+    trip: TripInputObject!
+    price: PriceInputObject!
+  }
+
+  type CounteredRequest {
+    id: ID!
+    request: Request!
+    trip: Trip!
+    price: Price!
+    counterStatus: Status!
+  }
+
   input RequestInputObject {
     fromLocation: LocationInputObject!
     toLocation: LocationInputObject!
     offeredPrice: PriceInputObject!
     package: PackageInputObject
+    counterOffers: CounteredRequestInputObject
   }
 
   type Request {
@@ -144,9 +161,10 @@ const typeDefs = `
     toLocation: Location!
     offeredPrice: Price!
     status: Status!
-    counterOffers: [Price]
+    counterOffers: [CounteredRequest]
     trip: Trip
   }
+
 
   input TripInputObject {
     fromLocation: LocationInputObject!
@@ -162,6 +180,7 @@ const typeDefs = `
     fromDate: DateTime!
     toDate: DateTime!
     attachedRequests: [Request]
+    counteredRequests: [CounteredRequest]
   }
 
   input AttachRequestToTripInput {
@@ -172,7 +191,7 @@ const typeDefs = `
   input AttachCounterOfferToRequestInput {
     tripId: ID!
     requestId: ID!
-    counterOfferPrice: PriceInputObject!
+    counterOffer: PriceInputObject!
   }
 
   type Query {
@@ -217,13 +236,12 @@ const resolvers = {
 
     // (traveller action) Counter offer request to my trip.
     attachCounterOfferToRequest: (_, {input}) => {
-      const {tripId, requestId, counterOfferPrice} = input;
+      const {tripId, requestId, counterOffer} = input;
 
-      console.log('tripId, requestId, counterOfferPrice', tripId, requestId, counterOfferPrice);
-
+      console.log('counterOffer========', counterOffer);
 
       // get trip
-      const trip = _Trips.filter((trip) => trip.id === tripId)[0]
+      const trip = _Trips.filter((trip) => trip.id === tripId)[0];
 
       // Validation
       if (!trip) return console.log('Trip doesnt exist');
@@ -237,8 +255,6 @@ const resolvers = {
       // get request
       const request = _Requests.filter((request) => request.id === requestId)[0]
 
-      console.log('this requests counter offers...', request.counterOffers);
-
       // Validation
       if (!request) return console.log('Request doesnt exist');
 
@@ -248,11 +264,29 @@ const resolvers = {
       // remove request from array
       _Requests.splice(requestIndex, 1);
 
+      // Build counter offer
+      const counterOfferObject = {
+        id: uuidv4(),
+        request: request,
+        trip: trip,
+        price: {
+          currencyCode: counterOffer.currencyCode,
+          amount: counterOffer.amount,
+        },
+        counterStatus: 'OFFERED' // or REJECTED
+      }
+
+      // Save counterOffer as own item
+      _CounteredRequests.push(counterOfferObject);
+
       // Push counter offer to request
-      request.counterOffers.push(counterOfferPrice);
+      request.counterOffers.push(counterOfferObject);
 
       // change request status to countered
       request.status = 'COUNTERED';
+
+      // Push counter offer to trip
+      trip.counteredRequests.push(counterOfferObject)
 
       // push trip back to _Trips
       _Trips.push(trip);
@@ -330,7 +364,8 @@ const resolvers = {
         },
         fromDate: fromDate,
         toDate: toDate,
-        attachedRequests: []
+        attachedRequests: [],
+        counteredRequests: []
       }
 
       // Save trips
