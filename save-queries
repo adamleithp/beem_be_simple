@@ -133,3 +133,205 @@ mutation {
   }
 
 }
+
+
+
+mutation {
+  attachRequestToTrip(input:{
+    tripId:"9f79a5ca-df8a-40fd-b6f4-63e3599d0f9e",
+    requestId:"819a0e2c-e891-4ac8-addc-8140cb2b389e"
+  }) {
+    id
+    fromDate
+    attachedRequests {
+      status
+      id
+      trip {
+        id
+        fromDate
+      }
+    }
+  }
+}
+
+
+
+# Try to write your query here
+{
+
+
+
+#   myTrip(id:"1") {
+#     id
+#     toDate
+#     fromDate
+#     toLocation {
+#       lat, lng
+#     }
+#     fromLocation {
+#       lat, lng
+#     }
+#     attachedRequests {
+#       id
+#       toLocation {
+#         lat, lng
+#       }
+#       fromLocation {
+#         lat, lng
+#       }
+#       status
+#       package {
+#         id
+#         name
+#         price
+#       }
+#     }
+#   }
+
+#   myRequests {
+#   	id
+#     status
+#     offeredPrice{
+#       currencyCode
+#       amount
+#     }
+#     toLocation {
+#       lat, lng, googlePlaceId
+#     }
+#     fromLocation {
+#       lat, lng, googlePlaceId
+#     }
+#     counterOffers {
+#       amount
+#       currencyCode
+#     }
+#     package {
+#       id
+#       name
+#       description
+#       price {
+#         amount
+#       	currencyCode
+#       }
+#     }
+#   }
+
+  myRequest(id:"5bdb590b-2e58-4c4e-9e9e-9d6f547021b1"){
+  	id
+    status
+    offeredPrice{
+      currencyCode
+      amount
+    }
+    toLocation {
+      lat, lng, googlePlaceId
+    }
+    fromLocation {
+      lat, lng, googlePlaceId
+    }
+    counterOffers {
+      amount
+      currencyCode
+    }
+    package {
+      id
+      name
+      description
+      price {
+        amount
+      	currencyCode
+      }
+    }
+  }
+
+  # myPackage(id: "1") {
+  #   id
+  #   name
+  #   price {
+  #     amount
+  #     currencyCode
+  #   }
+  # }
+}
+
+
+mutation {
+  createRequest(input:{
+    fromLocation: {
+      lat: 123123,
+      lng: 12312312,
+    }
+    toLocation: {
+      lat: 123123,
+      lng: 12312312,
+    }
+    offeredPrice:{
+      amount: 3000.00,
+   		currencyCode: "CAD"
+    }
+  }) {
+    id
+    offeredPrice {
+      amount
+      currencyCode
+    }
+    fromLocation {
+      lat, lng
+    }
+    toLocation {
+      lat, lng
+    }
+    trip {
+      id
+    }
+  }
+}
+
+
+mutation {
+  createTrip(input:{
+    fromDate:"12312312",
+    toDate:"12312312",
+    fromLocation: {
+      lat: -12.312300,
+      lng: 12312312,
+      googlePlaceId:"123131212"
+    }
+    toLocation: {
+      lat: 123123,
+      lng: 12312312,
+    }
+  }) {
+    id
+    fromDate
+    toDate
+    fromLocation {
+      lat, lng, googlePlaceId
+    }
+    toLocation {
+      lat, lng
+    }
+    attachedRequests {
+      id
+    }
+  }
+}
+
+
+mutation {
+	createPackage(input:{
+    name: "test",
+    description:"something about it",
+    price:{
+      amount:2400,
+      currencyCode:"USD"
+    }
+  }) {
+	  id
+    description
+    price {
+      amount
+      currencyCode
+    }
+	}
+}

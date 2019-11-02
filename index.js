@@ -169,6 +169,12 @@ const typeDefs = `
     requestId: ID!
   }
 
+  input AttachCounterOfferToRequestInput {
+    tripId: ID!
+    requestId: ID!
+    counterOfferPrice: PriceInputObject!
+  }
+
   type Query {
     myTrip(id: String): Trip!
     myTrips: [Trip]
@@ -182,6 +188,7 @@ const typeDefs = `
     createRequest(input: RequestInputObject): Request!
     createPackage(input: PackageInputObject): Package!
     attachRequestToTrip(input: AttachRequestToTripInput): Trip!
+    attachCounterOfferToRequest(input: AttachCounterOfferToRequestInput): Trip!
   }
 `
 
@@ -207,6 +214,57 @@ const resolvers = {
     },
   },
   Mutation: {
+
+    // (traveller action) Counter offer request to my trip.
+    attachCounterOfferToRequest: (_, {input}) => {
+      const {tripId, requestId, counterOfferPrice} = input;
+
+      console.log('tripId, requestId, counterOfferPrice', tripId, requestId, counterOfferPrice);
+
+
+      // get trip
+      const trip = _Trips.filter((trip) => trip.id === tripId)[0]
+
+      // Validation
+      if (!trip) return console.log('Trip doesnt exist');
+
+      // get trip index
+      let tripIndex = _Trips.findIndex(trip => trip.id == tripId);
+
+      // remove trip from array
+      _Trips.splice(tripIndex, 1);
+
+      // get request
+      const request = _Requests.filter((request) => request.id === requestId)[0]
+
+      console.log('this requests counter offers...', request.counterOffers);
+
+      // Validation
+      if (!request) return console.log('Request doesnt exist');
+
+      // get request index
+      let requestIndex = _Requests.findIndex(request => request.id == requestId);
+
+      // remove request from array
+      _Requests.splice(requestIndex, 1);
+
+      // Push counter offer to request
+      request.counterOffers.push(counterOfferPrice);
+
+      // change request status to countered
+      request.status = 'COUNTERED';
+
+      // push trip back to _Trips
+      _Trips.push(trip);
+
+      // push request back to _Requests
+      _Requests.push(request);
+
+      // return trip
+      return trip
+    },
+
+    // (traveller action) Accept Request to my trip.
     attachRequestToTrip: (_, {input}) => {
       const {tripId, requestId} = input;
 
@@ -237,7 +295,7 @@ const resolvers = {
       // Add trip to request
       request.trip = trip;
 
-      // change request status
+      // change request status to accepted
       request.status = 'ACCEPTED';
 
       // add to request trip.attachedRequests
@@ -303,6 +361,7 @@ const resolvers = {
           amount: offeredPrice.amount,
           currencyCode: offeredPrice.currencyCode
         },
+        counterOffers: [],
         trip: null,
       }
 
