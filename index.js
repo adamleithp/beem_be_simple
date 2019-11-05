@@ -7,6 +7,8 @@ const _Trips = [];
 const _Requests = [];
 const _CounteredRequests = [];
 
+const GOOGLE_API_KEY = 'AIzaSyAouQCTblqUO9VZAGPXOzvXVizG4r5fwfE'
+
 const Prices = [
  {
    amount: 3100.99,
@@ -108,6 +110,11 @@ const typeDefs = `
     lat: Float!
     lng: Float!
     googlePlaceId: String
+    formattedAddress: String
+  }
+  type LocationSuggestion {
+    id: ID
+    description: String
   }
 
   input PriceInputObject {
@@ -194,6 +201,11 @@ const typeDefs = `
     counterOffer: PriceInputObject!
   }
 
+  type LocationObject {
+    lat: String!
+    lng: String!
+  }
+
   type Query {
     myTrip(id: String): Trip!
     myTrips: [Trip]
@@ -201,11 +213,15 @@ const typeDefs = `
     myRequests: [Request]
     myPackage(id: String): Package!
     getRequestsForLocation(placeId: String): [Request]
+
+    getLocationSuggestions(locationString: String, typeOfLocationLookup: String): [LocationSuggestion]
+    getLocationInformation(locationId: ID): Location
   }
   type Mutation {
     createTrip(input: TripInputObject): Trip!
     createRequest(input: RequestInputObject): Request!
     createPackage(input: PackageInputObject): Package!
+    acceptCounterOfferAsRequester(input: AttachCounterOfferToRequestInput): Request!
     attachRequestToTrip(input: AttachRequestToTripInput): Trip!
     attachCounterOfferToRequest(input: AttachCounterOfferToRequestInput): Trip!
   }
@@ -231,14 +247,113 @@ const resolvers = {
     getRequestsForLocation: (_, { placeId }) => {
       return _Requests.filter((request) => request.toLocation.googlePlaceId === placeId)
     },
+
+    getLocationSuggestions: async (_, { locationString, typeOfLocationLookup }) => {
+      console.log('locationString, typeOfLocationLookup', locationString, typeOfLocationLookup);
+
+      // validation
+      let typeOfLookUp;
+      if (typeOfLocationLookup === 'geocode') typeOfLookUp = 'geocode';
+      if (typeOfLocationLookup === 'establishment') typeOfLookUp = 'establishment';
+      if (typeOfLocationLookup !== 'geocode' && typeOfLocationLookup !== 'establishment') return false;
+
+      const locations = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${locationString}&types=${typeOfLookUp}&fields=formatted_address,name&language=en&key=${GOOGLE_API_KEY}`)
+				.then((response) => {
+					return response.json();
+				})
+				.then((json) => {
+          return json.predictions;
+        });
+
+      const locationsFormatted = locations.map((location) => {
+        return {
+          id: location.place_id,
+          description: location.description,
+        }
+      })
+
+      return locationsFormatted
+    },
+
+    getLocationInformation: async (_, { locationId }) => {
+			const locationInformation = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${locationId}&fields=geometry,formatted_address&key=${GOOGLE_API_KEY}`)
+        .then((response) => {
+          return response.json();
+        })
+        .then((json) => {
+          return json.result;
+        });
+
+      return {
+        lat: locationInformation.geometry.location.lat,
+        lng: locationInformation.geometry.location.lng,
+        googlePlaceId: locationId,
+        formattedAddress: locationInformation.formatted_address
+      };
+    },
+
   },
+
   Mutation: {
+    // rejectCounterOfferToRequest: (_, {input}) => {
+    //   const {tripId, requestId, counterOffer} = input;
+    // },
+
+    // (requester action) Accept a counter offer (from traveller)
+    acceptCounterOfferAsRequester: (_, {input}) => {
+      const {tripId, requestId, counterRequestId} = input;
+
+      // get trip
+      const trip = _Trips.filter((trip) => trip.id === tripId)[0];
+      // Validation
+      if (!trip) return console.log('Trip doesnt exist');
+      // get trip index
+      let tripIndex = _Trips.findIndex(trip => trip.id == tripId);
+      // remove trip from array
+      _Trips.splice(tripIndex, 1);
+
+      // get request
+      const request = _Requests.filter((request) => request.id === requestId)[0]
+      // Validation
+      if (!request) return console.log('Request doesnt exist');
+      // get request index
+      let requestIndex = _Requests.findIndex(request => request.id == requestId);
+      // remove request from array
+      _Requests.splice(requestIndex, 1);
+      // Add trip to request
+      request.trip = trip;
+      // change request status to accepted
+      request.status = 'ACCEPTED';
+      // add to request trip.attachedRequests
+      trip.attachedRequests.push(request)
+      // Empty counter requests
+      trip.counteredRequests = []
+
+      // Get Counter request offer
+      const counterRequest = _CounteredRequests.filter((counterRequest) => counterRequest.id === counterRequestId)[0]
+      // Validation
+      if (!counterRequest) return console.log('Counter Request doesnt exist');
+      // get request index
+      let counterRequestIndex = _CounteredRequests.findIndex(counterRequest => counterRequest.id == counterRequestId);
+      // remove counter request from array
+      _CounteredRequests.splice(counterRequestIndex, 1);
+      // Update counter request
+      counteredRequest.counterStatus = 'ACCEPTED';
+      // push counter request back to _CounteredRequests
+      _CounteredRequests.push(counteredRequest)
+
+      // push trip back to _Trips
+      _Trips.push(trip);
+      // push request back to _Requests
+      _Requests.push(request);
+
+      // return trip
+      return request
+    },
 
     // (traveller action) Counter offer request to my trip.
     attachCounterOfferToRequest: (_, {input}) => {
       const {tripId, requestId, counterOffer} = input;
-
-      console.log('counterOffer========', counterOffer);
 
       // get trip
       const trip = _Trips.filter((trip) => trip.id === tripId)[0];
@@ -273,7 +388,7 @@ const resolvers = {
           currencyCode: counterOffer.currencyCode,
           amount: counterOffer.amount,
         },
-        counterStatus: 'OFFERED' // or REJECTED
+        counterStatus: 'OFFERED' // or REJECTED or ACCEPTED
       }
 
       // Save counterOffer as own item
