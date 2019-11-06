@@ -195,6 +195,12 @@ const typeDefs = `
     requestId: ID!
   }
 
+  input AttachRequestInput {
+    tripId: ID!
+    requestId: ID!
+    counterRequestId: ID!
+  }
+
   input AttachCounterOfferToRequestInput {
     tripId: ID!
     requestId: ID!
@@ -221,7 +227,7 @@ const typeDefs = `
     createTrip(input: TripInputObject): Trip!
     createRequest(input: RequestInputObject): Request!
     createPackage(input: PackageInputObject): Package!
-    acceptCounterOfferAsRequester(input: AttachCounterOfferToRequestInput): Request!
+    acceptCounterOfferAsRequester(input: AttachRequestInput): Request!
     attachRequestToTrip(input: AttachRequestToTripInput): Trip!
     attachCounterOfferToRequest(input: AttachCounterOfferToRequestInput): Trip!
   }
@@ -324,6 +330,7 @@ const resolvers = {
       request.trip = trip;
       // change request status to accepted
       request.status = 'ACCEPTED';
+
       // add to request trip.attachedRequests
       trip.attachedRequests.push(request)
       // Empty counter requests
@@ -338,9 +345,14 @@ const resolvers = {
       // remove counter request from array
       _CounteredRequests.splice(counterRequestIndex, 1);
       // Update counter request
-      counteredRequest.counterStatus = 'ACCEPTED';
+      counterRequest.counterStatus = 'ACCEPTED';
       // push counter request back to _CounteredRequests
-      _CounteredRequests.push(counteredRequest)
+      _CounteredRequests.push(counterRequest)
+
+      // Empty original offerPrice,
+      request.offeredPrice = {};
+      // replace offer price with counterRequest Price after accepting
+      request.offeredPrice = counterRequest.price;
 
       // push trip back to _Trips
       _Trips.push(trip);
