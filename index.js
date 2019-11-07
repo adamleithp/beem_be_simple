@@ -195,7 +195,7 @@ const typeDefs = `
     requestId: ID!
   }
 
-  input AttachRequestInput {
+  input ModifyCounterRequestInputObject {
     tripId: ID!
     requestId: ID!
     counterRequestId: ID!
@@ -227,7 +227,8 @@ const typeDefs = `
     createTrip(input: TripInputObject): Trip!
     createRequest(input: RequestInputObject): Request!
     createPackage(input: PackageInputObject): Package!
-    acceptCounterOfferAsRequester(input: AttachRequestInput): Request!
+    rejectCounterOfferAsRequester(input: ModifyCounterRequestInputObject): Request!
+    acceptCounterOfferAsRequester(input: ModifyCounterRequestInputObject): Request!
     attachRequestToTrip(input: AttachRequestToTripInput): Trip!
     attachCounterOfferToRequest(input: AttachCounterOfferToRequestInput): Trip!
   }
@@ -301,9 +302,58 @@ const resolvers = {
   },
 
   Mutation: {
-    // rejectCounterOfferToRequest: (_, {input}) => {
-    //   const {tripId, requestId, counterOffer} = input;
-    // },
+    rejectCounterOfferAsRequester: (_, {input}) => {
+      const {tripId, requestId, counterRequestId} = input;
+
+      // get trip
+      const trip = _Trips.filter((trip) => trip.id === tripId)[0];
+      // Validation
+      if (!trip) return console.log('Trip doesnt exist');
+      // get trip index
+      let tripIndex = _Trips.findIndex(trip => trip.id == tripId);
+      // remove trip from array
+      _Trips.splice(tripIndex, 1);
+
+      // get request
+      const request = _Requests.filter((request) => request.id === requestId)[0]
+      // Validation
+      if (!request) return console.log('Request doesnt exist');
+      // get request index
+      let requestIndex = _Requests.findIndex(request => request.id == requestId);
+      // remove request from array
+      _Requests.splice(requestIndex, 1);
+
+      // Get Counter request offer
+      const counterRequest = _CounteredRequests.filter((counterRequest) => counterRequest.id === counterRequestId)[0]
+      // Validation
+      if (!counterRequest) return console.log('Counter Request doesnt exist');
+      // get request index
+      let counterRequestIndex = _CounteredRequests.findIndex(counterRequest => counterRequest.id == counterRequestId);
+      // remove counter request from array
+      _CounteredRequests.splice(counterRequestIndex, 1);
+      // Update counter request
+      counterRequest.counterStatus = 'REJECTED';
+
+      // Remove counter offer from equest
+      let thisRequestsCounterOfferIndex = request.counterOffers.findIndex(counterRequest => counterRequest.id == counterRequestId);
+      // remove counter request from array
+      request.counterOffers.splice(thisRequestsCounterOfferIndex, 1);
+
+      if (request.counterOffers.length === 0) {
+        request.status = "PENDING"
+      }
+
+      // push counter request back to _CounteredRequests
+      _CounteredRequests.push(counterRequest)
+
+      // push trip back to _Trips
+      _Trips.push(trip);
+      // push request back to _Requests
+      _Requests.push(request);
+
+      // return trip
+      return request
+    },
 
     // (requester action) Accept a counter offer (from traveller)
     acceptCounterOfferAsRequester: (_, {input}) => {
