@@ -7,7 +7,7 @@ const _Trips = [];
 const _Requests = [];
 const _CounteredRequests = [];
 
-const GOOGLE_API_KEY = 'AIzaSyAouQCTblqUO9VZAGPXOzvXVizG4r5fwfE'
+const GOOGLE_API_KEY = ''
 
 const Prices = [
  {
